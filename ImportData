@@ -1,0 +1,55 @@
+#imports data from digital stethoscope, saves serial input to a text file, and plots the peaks
+
+from datetime import datetime
+import os.path
+import time
+import serial
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.misc import electrocardiogram
+from scipy.signal import find_peaks
+import math
+ser = serial.Serial('COM3', 9600) 
+vals = []
+setTime = 20
+#x = []
+counter = 1
+ser.flushInput()
+ser.flushOutput()
+name = input("Name of Patient: ")
+save_path = 'C:/Users/PC/OneDrive/Documents/PythonFiles/StethTxtFiles/'
+fileName = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
+completeName = os.path.join(save_path, fileName + "_" + name + ".txt") #completes path and txt file
+start = input("Press ENTER to begin: ")
+if start == '':
+    start = time.time() #starts the timer
+    with open(completeName, 'x') as f: #opens txt file
+        time.sleep(2)
+        while time.time()- start < setTime: #runs for only determined time
+            data_raw = ser.readline().rstrip() #reads serial input and starts filtering non-integer data
+            #if data_raw.decode('utf-8') != '': 
+            print(data_raw.decode('utf-8'))
+            f.write(str(data_raw.decode('utf-8')) + "\n") #writes data to the txt file
+            #vals.append(int(data_raw.decode('utf-8')))
+            try: #only appends to the array if it won't produce an error (i.e. not an empty string or non-integer value)
+                vals.append(int(data_raw.decode('utf-8')))
+            except ValueError:
+                pass 
+                #x.append(counter)
+                counter += 1
+
+
+vals = np.array(vals)
+peaks, _ = find_peaks(vals, distance=100) #finds the peaks the array
+average2 = sum(vals[peaks])/len(vals[peaks])
+peaks2 = np.delete(peaks, np.where(vals[peaks] < average2))
+noisePeaks, _ = find_peaks(vals[peaks2]) #finds the high noise peaks in the array
+print(noisePeaks)
+print(vals[noisePeaks])
+peaks3 = np.setdiff1d(peaks2, noisePeaks) #removes high noise peaks
+print(peaks3)
+plt.plot(vals)
+plt.plot(peaks3, vals[peaks3], "x") #plots "x"s for the peaks
+plt.plot(np.zeros_like(vals), "--", color="gray")
+plt.text(8, 13, 'BPM = ' + str(len(peaks3)*60/setTime), style='italic')
+plt.show()
