@@ -1,0 +1,38 @@
+#plots data from existing text files
+
+import os.path
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
+import math
+setTime = 20
+noisePeaks=[]
+peakOutliers= []
+path = "C:/Users/PC/OneDrive/Documents/PythonFiles/StethTxtFiles/2022_01_06-11_03_47_AM_Roey.txt"
+
+openFile = open(path, "r")
+values = openFile.read().splitlines() #puts the file into an array 
+openFile.close()
+
+# def partition(value): 
+#     partitioned = np.floor(np.divide(value, max(value)/10)) #takes the largest value in the peaks and divides it into 10 partitioned. Dividing each peak by that partition and rounding it, each peak is essentially assigned a value from 1 to 10. 
+#     partitioned = np.multiply(np.unique(partitioned), max(value)/10) #duplicate values are removed, then the remaining values are multiplied by the partition. These will be the basis of the average.
+#     return partitioned #returns the unique values multiplied by the partition. The average will be of these new unique values.
+
+vals = np.array(values)
+vals = np.delete(vals, vals == '')
+vals = vals.astype(int)
+peaks, _ = find_peaks(vals, distance=100) #finds the peaks the array
+#noisePeaks, _ = find_peaks(vals[peaks2]) #finds the high noise peaks in the array
+standardDev = np.std(vals[peaks])
+fromMean = np.abs(vals[peaks] - np.mean(vals[peaks]))
+outliers = fromMean > 2 * standardDev
+outliers = peaks[outliers]
+peaks2 = np.setdiff1d(peaks, outliers)
+average = sum(vals[peaks2])/len(vals[peaks2])
+peaks3 = np.delete(peaks2, np.where(vals[peaks2] < average))
+plt.plot(vals)
+plt.plot(peaks3, vals[peaks3], "x") #plots "x"s for the peaks
+plt.plot(np.zeros_like(vals), "--", color="gray")
+plt.text(8, 13, 'BPM = ' + str(len(peaks3)*60/setTime), style='italic')
+plt.show()
